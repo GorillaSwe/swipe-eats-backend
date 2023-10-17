@@ -1,22 +1,23 @@
 default: &default
   adapter: mysql2
-  encoding: utf8mb4
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  username: root
-  password: password # デフォルトだと空欄になっているはずなので変更
-  host: db # デフォルトだとlocalhostになっているはずなので変更
+  timeout: 5000
+  charset: utf8mb4
+  encoding: utf8mb4
+  collation: utf8mb4_general_ci
 
 development:
   <<: *default
+  username: root
+  password: password
+  host: db
   database: myapp_development
-
-test:
-  <<: *default
-  database: myapp_test
 
 production:
   <<: *default
-  database: <%= ENV["DATABASE_NAME"] %>
-  username: <%= ENV["DATABASE_USERNAME"] %>
-  password: <%= ENV["DATABASE_PASSWORD"] %>
-  host: <%= ENV["DATABASE_HOST"] %>
+  username: <%= Rails.application.credentials.planetscale&.fetch(:username) %>
+  password: <%= Rails.application.credentials.planetscale&.fetch(:password) %>
+  database: <%= Rails.application.credentials.planetscale&.fetch(:database) %>
+  host: <%= Rails.application.credentials.planetscale&.fetch(:host) %>
+  ssl_mode: verify_identity
+  sslca: "/etc/ssl/certs/ca-certificates.crt"
