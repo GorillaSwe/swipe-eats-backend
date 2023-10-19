@@ -11,6 +11,9 @@ gem "bootsnap", require: false
 gem "rack-cors"
 gem 'dotenv-rails'
 gem 'google_places'
+gem 'sidekiq'
+gem 'connection_pool'
+gem 'redis-client'
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
