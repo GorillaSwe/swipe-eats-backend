@@ -91,26 +91,50 @@ class Api::RestaurantsController < ApplicationController
   end
 
   def restaurant_details(place_id)
-    uri = URI.parse("#{BASE_URL}/details/json?place_id=#{place_id}&fields=photos,website,url,address_components,formatted_phone_number,user_ratings_total&key=#{ENV['GOOGLE_API_KEY']}")
-    response = Net::HTTP.get_response(uri)
-
-    restaurant_detail = JSON.parse(response.body)["result"]
-
-    if restaurant_detail.present?
-      postal_code = restaurant_detail["address_components"].find { |component| component["types"].include?("postal_code") }["long_name"] if restaurant_detail["address_components"]
-      photos = restaurant_detail["photos"].map do |photo|
-        "#{BASE_URL}/photo?maxwidth=800&photoreference=#{photo["photo_reference"]}&key=#{ENV['GOOGLE_API_KEY']}"
-      end
+    restaurant = Restaurant.find_by(place_id: place_id)
+  
+    if restaurant
+      photos = restaurant.photos.order(:position).pluck(:url)
       {
         photos: photos,
-        website: restaurant_detail["website"],
-        url:     restaurant_detail["url"],
-        postal_code:     restaurant_detail["address_components"].find { |component| component["types"].include?("postal_code") }["long_name"],
-        user_ratings_total: restaurant_detail["user_ratings_total"],
-        formatted_phone_number: restaurant_detail["formatted_phone_number"]
+        website: restaurant.website,
+        url: restaurant.url,
+        postal_code: restaurant.postal_code,
+        user_ratings_total: restaurant.user_ratings_total,
+        formatted_phone_number: restaurant.formatted_phone_number
       }
     else
-      {}
+      uri = URI.parse("#{BASE_URL}/details/json?place_id=#{place_id}&key=#{ENV['GOOGLE_API_KEY']}")
+      response = Net::HTTP.get_response(uri)
+
+      restaurant_detail = JSON.parse(response.body)["result"]
+
+      if restaurant_detail.present?
+        postal_code = restaurant_detail["address_components"].find { |component| component["types"].include?("postal_code") }["long_name"] if restaurant_detail["address_components"]
+        photos = restaurant_detail["photos"].map do |photo|
+          "#{BASE_URL}/photo?maxwidth=800&photoreference=#{photo["photo_reference"]}&key=#{ENV['GOOGLE_API_KEY']}"
+        end
+        details = {
+          place_id: restaurant_detail["place_id"],
+          name: restaurant_detail["name"],
+          lat: restaurant_detail["geometry"]["location"]["lat"],
+          lng: restaurant_detail["geometry"]["location"]["lng"],
+          vicinity: restaurant_detail["vicinity"],
+          rating: restaurant_detail["rating"],
+          price_level: restaurant_detail["price_level"],
+          photos: photos,
+          website: restaurant_detail["website"],
+          url: restaurant_detail["url"],
+          postal_code: postal_code,
+          user_ratings_total: restaurant_detail["user_ratings_total"],
+          formatted_phone_number: restaurant_detail["formatted_phone_number"]
+        }
+  
+        # 非同期でレストラン情報をDBに保存
+        SaveRestaurantJob.perform_later(details)
+  
+        details
+      end
     end
   end
 
