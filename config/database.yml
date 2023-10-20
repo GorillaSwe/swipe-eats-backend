@@ -5,10 +5,11 @@ default: &default
   charset: utf8mb4
   encoding: utf8mb4
   collation: utf8mb4_general_ci
+  username: root
+  port: 3306
 
 development:
   <<: *default
-  username: root
   password: password
   host: db
   database: myapp_development
