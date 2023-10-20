@@ -3,5 +3,5 @@ class Restaurant < ApplicationRecord
   validates :name, presence: true
   validates :lat, presence: true
   validates :lng, presence: true
-  has_many :photos 
+  has_many :photos, foreign_key: 'restaurant_id'
 end
