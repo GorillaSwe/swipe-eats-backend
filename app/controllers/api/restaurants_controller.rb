@@ -1,20 +1,25 @@
-require 'net/http'
-require 'uri'
-require 'json'
-
 class Api::RestaurantsController < ApplicationController
-  BASE_URL = "https://maps.googleapis.com/maps/api/place"
+  before_action :set_google_places_client, only: [:index, :restaurant_details]
 
   def index
     return render_error(:bad_request, '位置情報が提供されていません') if params[:latitude].blank? || params[:longitude].blank?
 
     begin
-      restaurants = fetch_restaurants
-    rescue StandardError => e
+      restaurants = fetch_restaurants_from_google
+    rescue => e
       return render_error(:bad_request, e.message)
     end
 
-    return render_error(:not_found, 'レストランが見つかりません。検索条件を変更して再度お試しください。') if restaurants.blank?
+    if params[:price].present?
+      selected_levels = params[:price].map(&:to_i)
+      restaurants = restaurants.select { |restaurant| selected_levels.include?(restaurant.price_level.to_i) }
+      return render_error(:bad_request, 'レストランが見つかりません。検索条件を変更して再度お試しください。') if restaurants.blank?
+    end
+
+    restaurants = restaurants.select do |restaurant|
+      distance_in_meters(restaurant.lat, restaurant.lng, params[:latitude].to_f, params[:longitude].to_f) <= params[:radius].to_i
+    end
+    return render_error(:bad_request, 'レストランが見つかりません。検索条件を変更して再度お試しください。') if restaurants.blank?
 
     processed_restaurants = sort_restaurants(process_restaurant_data(restaurants)).reverse
 
@@ -27,37 +32,38 @@ class Api::RestaurantsController < ApplicationController
   
   private
 
-  def fetch_restaurants
-    keyword_encoded = URI.encode_www_form_component(params[:category])
-    uri = URI.parse("#{BASE_URL}/nearbysearch/json?location=#{params[:latitude]},#{params[:longitude]}&radius=#{params[:radius]}&type=restaurant&language=ja&keyword=#{keyword_encoded}&key=#{ENV['GOOGLE_API_KEY']}")
-    response = Net::HTTP.get_response(uri)
-    response_data = JSON.parse(response.body)
-
-    if response_data["status"] != "OK"
-      error_message = 
-        if response_data["error_message"]&.include?("exceeded your daily request quota")
-          "申し訳ございませんが、現在サービスにアクセスできません。しばらくしてから再度お試し下さい。"
-        else
-          response_data["error_message"] || "Google APIからエラーが返されました。"
-        end
-  
-      raise StandardError.new(error_message)
-    end
-  
-    restaurants = response_data["results"]
-
-    restaurants = restaurants.select do |restaurant|
-      distance_in_meters(restaurant["geometry"]["location"]["lat"], restaurant["geometry"]["location"]["lng"], params[:latitude].to_f, params[:longitude].to_f) <= params[:radius].to_i
-    end
-
-    if params[:price].present?
-      selected_levels = params[:price].map(&:to_i)
-      restaurants = restaurants.select { |restaurant| selected_levels.include?(restaurant["price_level"].to_i) }
-    end
-
-    restaurants
+  def set_google_places_client
+    @client = GooglePlaces::Client.new(ENV['GOOGLE_API_KEY'])
   end
 
+  def fetch_restaurants_from_google
+    begin
+      restaurants = @client.spots(
+        params[:latitude], params[:longitude],
+        name: params[:category],
+        radius: params[:radius],
+        types: 'restaurant',
+        language: 'ja'
+      )
+
+      raise "レストランが見つかりません。検索条件を変更して再度お試しください。" if restaurants.blank?
+
+      restaurants
+
+      rescue GooglePlaces::OverQueryLimitError
+        raise "クエリ上限に達しました。"
+      rescue GooglePlaces::RequestDeniedError
+        raise "リクエストが拒否されました。"
+      rescue GooglePlaces::InvalidRequestError
+        raise "無効なリクエストです。"
+      rescue GooglePlaces::NotFoundError
+        raise "該当する結果が見つかりません。"
+      rescue GooglePlaces::UnknownError
+        raise "未知のエラーが発生しました。"
+      rescue => e
+        raise "予期しないエラーが発生しました：#{e.message}"
+    end
+  end
 
   def distance_in_meters(lat1, lng1, lat2, lng2)
     rad_per_deg = Math::PI / 180
@@ -71,15 +77,15 @@ class Api::RestaurantsController < ApplicationController
 
   def process_restaurant_data(restaurants)
     restaurants.map do |restaurant|
-      details = restaurant_details(restaurant["place_id"])
+      details = get_restaurant_details(restaurant)
       {
-        place_id:    restaurant["place_id"],
-        name:        restaurant["name"],
-        lat:         restaurant["geometry"]["location"]["lat"],
-        lng:         restaurant["geometry"]["location"]["lng"],
-        vicinity:    restaurant["vicinity"],
-        rating:      restaurant["rating"],
-        price_level: restaurant["price_level"],
+        place_id:    restaurant.place_id,
+        name:        restaurant.name,
+        lat:         restaurant.lat,
+        lng:         restaurant.lng,
+        vicinity:    restaurant.vicinity,
+        rating:      restaurant.rating,
+        price_level: restaurant.price_level,
         photos:      details[:photos],
         website:     details[:website],
         url:         details[:url],
@@ -90,52 +96,48 @@ class Api::RestaurantsController < ApplicationController
     end
   end
 
-  def restaurant_details(place_id)
-    restaurant = Restaurant.find_by(place_id: place_id)
+  def get_restaurant_details(restaurant)
+    existing_details = Restaurant.find_by(place_id: restaurant.place_id)
   
-    if restaurant
-      photos = restaurant.photos.order(:position).pluck(:url)
-      {
-        photos: photos,
-        website: restaurant.website,
-        url: restaurant.url,
-        postal_code: restaurant.postal_code,
-        user_ratings_total: restaurant.user_ratings_total,
-        formatted_phone_number: restaurant.formatted_phone_number
-      }
-    else
-      uri = URI.parse("#{BASE_URL}/details/json?place_id=#{place_id}&key=#{ENV['GOOGLE_API_KEY']}")
-      response = Net::HTTP.get_response(uri)
+    return format_existing_details(existing_details) if existing_details
 
-      restaurant_detail = JSON.parse(response.body)["result"]
+    new_details = @client.spot(restaurant.place_id)
 
-      if restaurant_detail.present?
-        postal_code = restaurant_detail["address_components"].find { |component| component["types"].include?("postal_code") }["long_name"] if restaurant_detail["address_components"]
-        photos = restaurant_detail["photos"].map do |photo|
-          "#{BASE_URL}/photo?maxwidth=800&photoreference=#{photo["photo_reference"]}&key=#{ENV['GOOGLE_API_KEY']}"
-        end
-        details = {
-          place_id: restaurant_detail["place_id"],
-          name: restaurant_detail["name"],
-          lat: restaurant_detail["geometry"]["location"]["lat"],
-          lng: restaurant_detail["geometry"]["location"]["lng"],
-          vicinity: restaurant_detail["vicinity"],
-          rating: restaurant_detail["rating"],
-          price_level: restaurant_detail["price_level"],
-          photos: photos,
-          website: restaurant_detail["website"],
-          url: restaurant_detail["url"],
-          postal_code: postal_code,
-          user_ratings_total: restaurant_detail["user_ratings_total"],
-          formatted_phone_number: restaurant_detail["formatted_phone_number"]
-        }
-  
-        # 非同期でレストラン情報をDBに保存
-        SaveRestaurantJob.perform_later(details)
-  
-        details
-      end
+    if new_details.present?
+      details = format_new_details(new_details)
+      SaveRestaurantJob.perform_later(details)
+      details[:photos] = new_details.photos.map { |photo| "https://maps.googleapis.com/maps/api/place/photo?maxwidth=580&photoreference=#{photo.photo_reference}&key=#{ENV['GOOGLE_API_KEY']}" }
+      details
     end
+  end
+
+  def format_existing_details(details)
+    {
+      photos: details.photos.order(:position).pluck(:url),
+      website: details.website,
+      url: details.url,
+      postal_code: details.postal_code,
+      user_ratings_total: details.user_ratings_total,
+      formatted_phone_number: details.formatted_phone_number
+    }
+  end
+
+  def format_new_details(details)
+    {
+      place_id: details.place_id,
+      name: details.name,
+      lat: details.lat,
+      lng: details.lng,
+      vicinity: details.vicinity,
+      rating: details.rating,
+      price_level: details.price_level,
+      photos: details.photos.map(&:photo_reference),
+      website: details.website,
+      url: details.url,
+      postal_code: details.postal_code,
+      user_ratings_total: details.json_result_object["user_ratings_total"],
+      formatted_phone_number: details.formatted_phone_number
+    }
   end
 
   def sort_restaurants(restaurants)
@@ -156,6 +158,13 @@ class Api::RestaurantsController < ApplicationController
   end
 
   def render_error(status, message)
-    render json: { error: message }, status: status
+    status_mapping = {
+      too_many_requests: 429,
+      forbidden: 403,
+      bad_request: 400,
+      not_found: 404,
+      internal_server_error: 500
+    }
+    render json: { error: message }, status: status_mapping[status] || status
   end
 end
