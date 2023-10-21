@@ -20,14 +20,15 @@ class SaveRestaurantJob < ApplicationJob
     restaurant.save!
 
     # 写真情報をデータベースに保存
-    restaurant_detail[:photos].each_with_index do |photo_url, index|
-      # ここでは、PhotoモデルがRestaurantモデルに関連付けられていると仮定しています。
+    restaurant_detail[:photos].each_with_index do |photo_reference, index|
+      photo_instance = GooglePlaces::Photo.new(nil, nil, photo_reference, nil, ENV['GOOGLE_API_KEY'])
+      photo_url = photo_instance.fetch_url(580)
+
       photo = restaurant.photos.find_or_initialize_by(url: photo_url)
       photo.position = index
       unless photo.save
         Rails.logger.error("Photo save error: #{photo.errors.full_messages.join(', ')}")
       end
-      photo.save!
     end
   end
 end
