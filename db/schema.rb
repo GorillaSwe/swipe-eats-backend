@@ -10,8 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_10_20_081716) do
-  create_table "photos", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+ActiveRecord::Schema[7.0].define(version: 2023_11_03_072435) do
+  create_table "photos", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "restaurant_id", null: false
     t.text "url"
     t.integer "position"
@@ -20,7 +20,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_10_20_081716) do
     t.index ["restaurant_id"], name: "index_photos_on_restaurant_id"
   end
 
-  create_table "restaurants", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "restaurants", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "place_id"
     t.string "name"
     t.float "lat"
@@ -33,6 +33,15 @@ ActiveRecord::Schema[7.0].define(version: 2023_10_20_081716) do
     t.string "postal_code"
     t.integer "user_ratings_total"
     t.string "formatted_phone_number"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "users", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.string "uid"
+    t.string "email"
+    t.string "name"
+    t.string "picture"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
