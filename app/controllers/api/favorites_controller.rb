@@ -1,4 +1,4 @@
-class Api::UsersController < SecuredController
+class Api::FavoritesController < SecuredController
   def create
     existing_favorite = @current_user.favorites.find_by(restaurant_id: params[:restaurant_id])
 
