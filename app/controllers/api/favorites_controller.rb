@@ -1,11 +1,9 @@
-class Api::FavoritesController < ApplicationController
-  before_action :authenticate_user
-
+class Api::UsersController < SecuredController
   def create
-    existing_favorite = current_user.favorites.find_by(restaurant_id: params[:restaurant_id])
+    existing_favorite = @current_user.favorites.find_by(restaurant_id: params[:restaurant_id])
 
     if existing_favorite.nil?
-      favorite = current_user.favorites.build(restaurant_id: params[:restaurant_id])
+      favorite = @current_user.favorites.build(restaurant_id: params[:restaurant_id])
 
       if favorite.save
         render json: favorite, status: :created
