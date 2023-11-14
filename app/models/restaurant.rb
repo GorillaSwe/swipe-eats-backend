@@ -4,4 +4,6 @@ class Restaurant < ApplicationRecord
   validates :lat, presence: true
   validates :lng, presence: true
   has_many :photos, foreign_key: 'restaurant_id'
+  has_many :favorites
+  has_many :users, through: :favorites
 end
