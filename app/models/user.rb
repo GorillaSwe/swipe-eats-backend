@@ -3,6 +3,6 @@ class User < ApplicationRecord
   has_many :restaurants, through: :favorites
   
   def self.from_token_payload(payload)
-    find_by(uid: payload['sub'])
+    find_by(sub: payload['sub'])
   end
 end
