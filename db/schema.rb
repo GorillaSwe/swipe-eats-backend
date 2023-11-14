@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_11_03_072435) do
+ActiveRecord::Schema[7.0].define(version: 2023_11_13_062601) do
+  create_table "favorites", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "restaurant_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["restaurant_id"], name: "index_favorites_on_restaurant_id"
+    t.index ["user_id"], name: "index_favorites_on_user_id"
+  end
+
   create_table "photos", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "restaurant_id", null: false
     t.text "url"
@@ -46,4 +55,6 @@ ActiveRecord::Schema[7.0].define(version: 2023_11_03_072435) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "favorites", "restaurants"
+  add_foreign_key "favorites", "users"
 end
