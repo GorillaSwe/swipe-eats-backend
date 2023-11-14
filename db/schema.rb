@@ -54,7 +54,4 @@ ActiveRecord::Schema[7.0].define(version: 2023_11_13_062601) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
-
-  add_foreign_key "favorites", "restaurants"
-  add_foreign_key "favorites", "users"
 end
