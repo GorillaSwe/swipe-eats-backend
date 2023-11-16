@@ -20,4 +20,28 @@ class Api::FavoritesController < SecuredController
       render json: { message: 'Already favorited' }, status: :ok
     end
   end
+
+  def index
+    favorites = @current_user.favorites.includes(:restaurant)
+
+    render json: favorites.map { |favorite|
+      next unless favorite.restaurant
+
+      photo = favorite.restaurant.photos.order(:position).first
+      {
+        id: favorite.id,
+        place_id: favorite.restaurant.place_id,
+        name: favorite.restaurant.name,
+        vicinity: favorite.restaurant.vicinity,
+        rating: favorite.restaurant.rating,
+        price_level: favorite.restaurant.price_level,
+        website: favorite.restaurant.website,
+        url: favorite.restaurant.url,
+        postal_code: favorite.restaurant.postal_code,
+        user_ratings_total: favorite.restaurant.user_ratings_total,
+        formatted_phone_number: favorite.restaurant.formatted_phone_number,
+        photo: photo&.url
+      }
+    }.compact
+  end
 end
