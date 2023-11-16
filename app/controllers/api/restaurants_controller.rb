@@ -102,7 +102,7 @@ class Api::RestaurantsController < ApplicationController
   
     return format_existing_details(existing_details) if existing_details
 
-    new_details = @client.spot(restaurant.place_id)
+    new_details = @client.spot(restaurant.place_id, language: 'ja')
 
     if new_details.present?
       details = format_new_details(new_details)
