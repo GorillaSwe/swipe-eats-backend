@@ -22,12 +22,12 @@ class Api::FavoritesController < SecuredController
   end
 
   def index
-    favorites = @current_user.favorites.includes(:restaurant)
+    favorites = @current_user.favorites.includes(restaurant: :photos)
 
     render json: favorites.map { |favorite|
       next unless favorite.restaurant
 
-      photo = favorite.restaurant.photos.order(:position).first
+      photos = favorite.restaurant.photos.order(:position).map(&:url)
       {
         id: favorite.id,
         place_id: favorite.restaurant.place_id,
@@ -40,7 +40,7 @@ class Api::FavoritesController < SecuredController
         postal_code: favorite.restaurant.postal_code,
         user_ratings_total: favorite.restaurant.user_ratings_total,
         formatted_phone_number: favorite.restaurant.formatted_phone_number,
-        photo: photo&.url
+        photos: photos
       }
     }.compact
   end
