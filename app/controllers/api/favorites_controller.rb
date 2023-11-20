@@ -44,4 +44,15 @@ class Api::FavoritesController < SecuredController
       }
     }.compact
   end
+
+  def destroy
+    favorite = @current_user.favorites.find_by(id: params[:id])
+
+    if favorite
+      favorite.destroy
+      render json: { message: 'Favorite deleted successfully' }, status: :ok
+    else
+      render json: { error: 'Favorite not found' }, status: :not_found
+    end
+  end
 end
