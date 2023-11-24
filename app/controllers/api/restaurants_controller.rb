@@ -36,7 +36,9 @@ class Api::RestaurantsController < ApplicationController
       restaurants = @client.spots_by_query(
         params[:query],
         types: 'restaurant',
-        language: 'ja'
+        language: 'ja',
+        lat: params[:latitude],
+        lng: params[:longitude]
       )
 
       raise "レストランが見つかりません。検索条件を変更して再度お試しください。" if restaurants.blank?
@@ -210,16 +212,6 @@ class Api::RestaurantsController < ApplicationController
       end
       restaurant
     end
-
-
-    # favorite_records = @current_user.favorites.includes(:restaurant)
-  
-    # restaurants.map do |restaurant|
-    # favorite = favorite_records.find { |fav| fav.restaurant.place_id == restaurant[:place_id] }
-    # restaurant[:is_favorite] = favorite.present?
-    # restaurant[:id] = favorite&.id
-    # restaurant
-  # end
   end
 
   def optional_authorize_request
