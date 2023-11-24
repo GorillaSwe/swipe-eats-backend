@@ -45,8 +45,15 @@ class Api::FavoritesController < SecuredController
     }.compact
   end
 
-  def destroy
-    favorite = @current_user.favorites.find_by(id: params[:id])
+  def destroy_by_place_id
+    restaurant = Restaurant.find_by(place_id: params[:place_id])
+
+    unless restaurant
+      render json: { error: 'Restaurant not found' }, status: :not_found
+      return
+    end
+
+    favorite = @current_user.favorites.find_by(restaurant_id: restaurant.id)
 
     if favorite
       favorite.destroy

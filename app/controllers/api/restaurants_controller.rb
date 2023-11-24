@@ -106,10 +106,10 @@ class Api::RestaurantsController < ApplicationController
         name:        restaurant.name,
         lat:         restaurant.lat,
         lng:         restaurant.lng,
-        vicinity:    restaurant.vicinity,
         rating:      restaurant.rating,
         price_level: restaurant.price_level,
         photos:      details[:photos],
+        vicinity:    details[:vicinity],
         website:     details[:website],
         url:         details[:url],
         postal_code: details[:postal_code],
@@ -143,6 +143,7 @@ class Api::RestaurantsController < ApplicationController
     photos = [ERROR_PHOTO] if photos.blank?
     {
       photos: photos,
+      vicinity: details.vicinity,
       website: details.website,
       url: details.url,
       postal_code: details.postal_code,
@@ -209,6 +210,16 @@ class Api::RestaurantsController < ApplicationController
       end
       restaurant
     end
+
+
+    # favorite_records = @current_user.favorites.includes(:restaurant)
+  
+    # restaurants.map do |restaurant|
+    # favorite = favorite_records.find { |fav| fav.restaurant.place_id == restaurant[:place_id] }
+    # restaurant[:is_favorite] = favorite.present?
+    # restaurant[:id] = favorite&.id
+    # restaurant
+  # end
   end
 
   def optional_authorize_request
