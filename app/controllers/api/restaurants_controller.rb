@@ -16,13 +16,13 @@ class Api::RestaurantsController < ApplicationController
     if params[:price].present?
       selected_levels = params[:price].map(&:to_i)
       restaurants = restaurants.select { |restaurant| selected_levels.include?(restaurant.price_level.to_i) }
-      return render_error(:bad_request, 'レストランが見つかりません。検索条件を変更して再度お試しください。') if restaurants.blank?
+      return render_error(:bad_request, 'レストランが見つかりません') if restaurants.blank?
     end
 
     restaurants = restaurants.select do |restaurant|
       distance_in_meters(restaurant.lat, restaurant.lng, params[:latitude].to_f, params[:longitude].to_f) <= params[:radius].to_i
     end
-    return render_error(:bad_request, 'レストランが見つかりません。検索条件を変更して再度お試しください。') if restaurants.blank?
+    return render_error(:bad_request, 'レストランが見つかりません') if restaurants.blank?
 
     processed_restaurants = sort_restaurants(process_restaurant_data(restaurants)).reverse
 
@@ -41,7 +41,7 @@ class Api::RestaurantsController < ApplicationController
         lng: params[:longitude]
       )
 
-      raise "レストランが見つかりません。検索条件を変更して再度お試しください。" if restaurants.blank?
+      raise "レストランが見つかりません" if restaurants.blank?
   
       processed_restaurants = process_restaurant_data(restaurants)
 
@@ -61,15 +61,15 @@ class Api::RestaurantsController < ApplicationController
   def handle_google_places_error
     yield
   rescue GooglePlaces::OverQueryLimitError
-    render_error(:too_many_requests, "クエリ上限に達しました。")
+    render_error(:too_many_requests, "クエリ上限に達しました")
   rescue GooglePlaces::RequestDeniedError
-    render_error(:forbidden, "リクエストが拒否されました。")
+    render_error(:forbidden, "リクエストが拒否されました")
   rescue GooglePlaces::InvalidRequestError
-    render_error(:bad_request, "無効なリクエストです。")
+    render_error(:bad_request, "無効なリクエストです")
   rescue GooglePlaces::NotFoundError
-    render_error(:not_found, "該当する結果が見つかりません。")
+    render_error(:not_found, "該当する結果が見つかりません")
   rescue GooglePlaces::UnknownError
-    render_error(:internal_server_error, "未知のエラーが発生しました。")
+    render_error(:internal_server_error, "未知のエラーが発生しました")
   rescue => e
     render_error(:internal_server_error, "予期しないエラーが発生しました：#{e.message}")
   end
@@ -84,7 +84,7 @@ class Api::RestaurantsController < ApplicationController
         language: 'ja'
       )
   
-      raise "レストランが見つかりません。検索条件を変更して再度お試しください。" if restaurants.blank?
+      raise "レストランが見つかりません" if restaurants.blank?
   
       restaurants
     end
