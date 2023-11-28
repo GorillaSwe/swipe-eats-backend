@@ -1,4 +1,6 @@
 class Api::FavoritesController < SecuredController
+  skip_before_action :authorize_request, only: [:latest]
+
   def create
     restaurant = Restaurant.find_by(place_id: params[:place_id])
 
@@ -29,7 +31,6 @@ class Api::FavoritesController < SecuredController
 
       photos = favorite.restaurant.photos.order(:position).map(&:url)
       {
-        id: favorite.id,
         place_id: favorite.restaurant.place_id,
         name: favorite.restaurant.name,
         vicinity: favorite.restaurant.vicinity,
@@ -61,5 +62,42 @@ class Api::FavoritesController < SecuredController
     else
       render json: { error: 'Favorite not found' }, status: :not_found
     end
+  end
+
+  def latest
+    page = params[:page] || 1
+    per_page = 5
+
+    # latest_favorites = Favorite.order(created_at: :desc).page(page).per(per_page)
+    latest_favorites = Favorite.latest.page(page).per(per_page)
+
+
+    favorites_json = latest_favorites.map do |favorite|
+      next unless favorite.restaurant
+
+      photos = favorite.restaurant.photos.order(:position).map(&:url)
+      {
+        place_id: favorite.restaurant.place_id,
+        name: favorite.restaurant.name,
+        vicinity: favorite.restaurant.vicinity,
+        rating: favorite.restaurant.rating,
+        price_level: favorite.restaurant.price_level,
+        website: favorite.restaurant.website,
+        url: favorite.restaurant.url,
+        postal_code: favorite.restaurant.postal_code,
+        user_ratings_total: favorite.restaurant.user_ratings_total,
+        formatted_phone_number: favorite.restaurant.formatted_phone_number,
+        photos: photos
+      }
+    end.compact
+
+    render json: {
+      favorites: favorites_json,
+      meta: {
+        total_pages: latest_favorites.total_pages,
+        current_page: latest_favorites.current_page,
+        next_page: latest_favorites.next_page
+      }
+    }
   end
 end

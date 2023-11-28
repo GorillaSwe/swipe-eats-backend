@@ -5,8 +5,14 @@ Rails.application.routes.draw do
         get :search
       end
     end
+
     resources :users, only: [:create]
-    resources :favorites, only: [:create, :index] 
+    
+    resources :favorites, only: [:create, :index] do
+      collection do
+        get :latest
+      end
+    end
     delete 'favorites/destroy_by_place_id/:place_id', to: 'favorites#destroy_by_place_id'
   end
 end
