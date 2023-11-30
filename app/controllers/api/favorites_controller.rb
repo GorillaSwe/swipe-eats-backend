@@ -68,8 +68,7 @@ class Api::FavoritesController < SecuredController
     page = params[:page] || 1
     per_page = 5
 
-    # latest_favorites = Favorite.order(created_at: :desc).page(page).per(per_page)
-    latest_favorites = Favorite.latest.page(page).per(per_page)
+    latest_favorites = Favorite.latest.includes(:user, restaurant: :photos).page(page).per(per_page)
 
 
     favorites_json = latest_favorites.map do |favorite|
@@ -87,7 +86,10 @@ class Api::FavoritesController < SecuredController
         postal_code: favorite.restaurant.postal_code,
         user_ratings_total: favorite.restaurant.user_ratings_total,
         formatted_phone_number: favorite.restaurant.formatted_phone_number,
-        photos: photos
+        photos: photos,
+        user_name: favorite.user.name,
+        user_picture: favorite.user.picture,
+        created_at: favorite.created_at
       }
     end.compact
 
