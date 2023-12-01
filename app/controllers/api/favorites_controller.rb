@@ -1,5 +1,5 @@
 class Api::FavoritesController < SecuredController
-  skip_before_action :authorize_request, only: [:latest]
+  skip_before_action :authorize_request, only: [:other_index, :latest]
 
   def create
     restaurant = Restaurant.find_by(place_id: params[:place_id])
@@ -64,6 +64,38 @@ class Api::FavoritesController < SecuredController
     end
   end
 
+  def other_index
+    encoded_user_sub = params[:user_sub]
+    user_sub = URI.decode_www_form_component(encoded_user_sub)
+
+    user = User.find_by(sub: user_sub)
+    return render json: { error: 'User not found' }, status: :not_found unless user
+    favorites = user.favorites.includes(restaurant: :photos)    
+    
+    render json: favorites.map { |favorite|
+      next unless favorite.restaurant
+
+      photos = favorite.restaurant.photos.order(:position).map(&:url)
+      {
+        place_id: favorite.restaurant.place_id,
+        name: favorite.restaurant.name,
+        vicinity: favorite.restaurant.vicinity,
+        rating: favorite.restaurant.rating,
+        price_level: favorite.restaurant.price_level,
+        website: favorite.restaurant.website,
+        url: favorite.restaurant.url,
+        postal_code: favorite.restaurant.postal_code,
+        user_ratings_total: favorite.restaurant.user_ratings_total,
+        formatted_phone_number: favorite.restaurant.formatted_phone_number,
+        photos: photos,
+        user_sub: favorite.user.sub,
+        user_name: favorite.user.name,
+        user_picture: favorite.user.picture,
+        created_at: favorite.created_at
+      }
+    }.compact
+  end
+
   def latest
     page = params[:page] || 1
     per_page = 5
@@ -87,6 +119,7 @@ class Api::FavoritesController < SecuredController
         user_ratings_total: favorite.restaurant.user_ratings_total,
         formatted_phone_number: favorite.restaurant.formatted_phone_number,
         photos: photos,
+        user_sub: favorite.user.sub,
         user_name: favorite.user.name,
         user_picture: favorite.user.picture,
         created_at: favorite.created_at
