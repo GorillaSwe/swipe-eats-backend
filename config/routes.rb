@@ -10,7 +10,7 @@ Rails.application.routes.draw do
     
     resources :favorites, only: [:create, :index] do
       collection do
-        get :latest
+        get :other_index,:latest
       end
     end
     delete 'favorites/destroy_by_place_id/:place_id', to: 'favorites#destroy_by_place_id'
