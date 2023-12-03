@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_11_14_030831) do
+ActiveRecord::Schema[7.0].define(version: 2023_12_02_011154) do
   create_table "favorites", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "restaurant_id", null: false
@@ -18,6 +18,16 @@ ActiveRecord::Schema[7.0].define(version: 2023_11_14_030831) do
     t.datetime "updated_at", null: false
     t.index ["restaurant_id"], name: "index_favorites_on_restaurant_id"
     t.index ["user_id"], name: "index_favorites_on_user_id"
+  end
+
+  create_table "follow_relationships", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.integer "follower_id", null: false
+    t.integer "followed_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["followed_id"], name: "index_follow_relationships_on_followed_id"
+    t.index ["follower_id", "followed_id"], name: "index_follow_relationships_on_follower_id_and_followed_id", unique: true
+    t.index ["follower_id"], name: "index_follow_relationships_on_follower_id"
   end
 
   create_table "photos", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
