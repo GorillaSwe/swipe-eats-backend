@@ -1,4 +1,6 @@
 class Api::UsersController < SecuredController
+  skip_before_action :authorize_request, only: [:search]
+
   def create
     @user = User.find_or_initialize_by(sub: params[:sub]) do |user|
       user.email = params[:email]
@@ -14,6 +16,16 @@ class Api::UsersController < SecuredController
       end
     else
       render json: @user, status: :ok
+    end
+  end
+
+  def search
+    query = params[:query]
+    if query.present?
+      users = User.where('name LIKE ?', "%#{query}%")
+      render json: { users: users }
+    else
+      render json: { error: 'Query is empty' }, status: :bad_request
     end
   end
 end

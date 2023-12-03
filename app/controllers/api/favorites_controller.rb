@@ -135,4 +135,44 @@ class Api::FavoritesController < SecuredController
       }
     }
   end
+
+  def followed
+    page = params[:page] || 1
+    per_page = 5
+
+    followed_users = @current_user.following
+    favorites = Favorite.latest.includes(:user, restaurant: :photos).where(user: followed_users).page(page).per(per_page)
+
+    favorites_json = favorites.map do |favorite|
+      next unless favorite.restaurant
+
+      photos = favorite.restaurant.photos.order(:position).map(&:url)
+      {
+        place_id: favorite.restaurant.place_id,
+        name: favorite.restaurant.name,
+        vicinity: favorite.restaurant.vicinity,
+        rating: favorite.restaurant.rating,
+        price_level: favorite.restaurant.price_level,
+        website: favorite.restaurant.website,
+        url: favorite.restaurant.url,
+        postal_code: favorite.restaurant.postal_code,
+        user_ratings_total: favorite.restaurant.user_ratings_total,
+        formatted_phone_number: favorite.restaurant.formatted_phone_number,
+        photos: photos,
+        user_sub: favorite.user.sub,
+        user_name: favorite.user.name,
+        user_picture: favorite.user.picture,
+        created_at: favorite.created_at
+      }
+    end.compact
+
+    render json: {
+      favorites: favorites_json,
+      meta: {
+        total_pages: favorites.total_pages,
+        current_page: favorites.current_page,
+        next_page: favorites.next_page
+      }
+    }
+  end
 end
