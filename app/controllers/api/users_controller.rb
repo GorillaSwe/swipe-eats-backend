@@ -1,5 +1,5 @@
 class Api::UsersController < SecuredController
-  skip_before_action :authorize_request, only: [:search]
+  skip_before_action :authorize_request, only: [:search, :profile]
 
   def create
     @user = User.find_or_initialize_by(sub: params[:sub]) do |user|
@@ -26,6 +26,17 @@ class Api::UsersController < SecuredController
       render json: { users: users }
     else
       render json: { error: 'Query is empty' }, status: :bad_request
+    end
+  end
+
+  def profile
+    user_sub = URI.decode_www_form_component(params[:user_sub])
+    user = User.find_by(sub: user_sub)
+
+    if user
+      render json: { name: user.name, picture: user.picture }
+    else
+      render json: { error: 'User not found' }, status: :not_found
     end
   end
 end

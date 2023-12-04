@@ -1,5 +1,5 @@
 class Api::FavoritesController < SecuredController
-  skip_before_action :authorize_request, only: [:other_index, :latest]
+  skip_before_action :authorize_request, only: [:other_index, :latest, :counts]
 
   def create
     restaurant = Restaurant.find_by(place_id: params[:place_id])
@@ -24,9 +24,12 @@ class Api::FavoritesController < SecuredController
   end
 
   def index
-    favorites = @current_user.favorites.includes(restaurant: :photos)
+    page = params[:page] || 1
+    per_page = 9
 
-    render json: favorites.map { |favorite|
+    favorites = @current_user.favorites.includes(restaurant: :photos).page(page).per(per_page)
+
+    favorites_json = favorites.map do |favorite|
       next unless favorite.restaurant
 
       photos = favorite.restaurant.photos.order(:position).map(&:url)
@@ -43,7 +46,16 @@ class Api::FavoritesController < SecuredController
         formatted_phone_number: favorite.restaurant.formatted_phone_number,
         photos: photos
       }
-    }.compact
+    end.compact
+
+    render json: {
+      favorites: favorites_json,
+      meta: {
+        total_pages: favorites.total_pages,
+        current_page: favorites.current_page,
+        next_page: favorites.next_page
+      }
+    }
   end
 
   def destroy_by_place_id
@@ -65,14 +77,16 @@ class Api::FavoritesController < SecuredController
   end
 
   def other_index
-    encoded_user_sub = params[:user_sub]
-    user_sub = URI.decode_www_form_component(encoded_user_sub)
-
+    page = params[:page] || 1
+    per_page = 9
+    
+    user_sub = URI.decode_www_form_component(params[:user_sub])
     user = User.find_by(sub: user_sub)
     return render json: { error: 'User not found' }, status: :not_found unless user
-    favorites = user.favorites.includes(restaurant: :photos)    
+
+    favorites = user.favorites.includes(restaurant: :photos).page(page).per(per_page) 
     
-    render json: favorites.map { |favorite|
+    favorites_json =  favorites.map do |favorite|
       next unless favorite.restaurant
 
       photos = favorite.restaurant.photos.order(:position).map(&:url)
@@ -93,7 +107,16 @@ class Api::FavoritesController < SecuredController
         user_picture: favorite.user.picture,
         created_at: favorite.created_at
       }
-    }.compact
+    end.compact
+
+    render json: {
+      favorites: favorites_json,
+      meta: {
+        total_pages: favorites.total_pages,
+        current_page: favorites.current_page,
+        next_page: favorites.next_page
+      }
+    }
   end
 
   def latest
@@ -174,5 +197,20 @@ class Api::FavoritesController < SecuredController
         next_page: favorites.next_page
       }
     }
+  end
+
+  def counts
+    user_sub = URI.decode_www_form_component(params[:user_sub])
+    user = User.find_by(sub: user_sub)
+
+    if user
+      favorites_count = user.favorites.count
+
+      render json: {
+        favoritesCount: favorites_count
+      }, status: :ok
+    else
+      render json: { error: 'Favorites not found' }, status: :not_found
+    end
   end
 end
