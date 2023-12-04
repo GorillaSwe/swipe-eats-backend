@@ -8,13 +8,13 @@ Rails.application.routes.draw do
 
     resources :users, only: [:create] do
       collection do
-        get :search
+        get :search, :profile
       end
     end
     
     resources :favorites, only: [:create, :index] do
       collection do
-        get :other_index,:latest,:followed
+        get :other_index,:latest,:followed,:counts
       end
     end
     delete 'favorites/destroy_by_place_id/:place_id', to: 'favorites#destroy_by_place_id'
