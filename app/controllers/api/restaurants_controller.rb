@@ -116,7 +116,8 @@ class Api::RestaurantsController < ApplicationController
         url:         details[:url],
         postal_code: details[:postal_code],
         user_ratings_total: details[:user_ratings_total],
-        formatted_phone_number: details[:formatted_phone_number]
+        formatted_phone_number: details[:formatted_phone_number],
+        is_favorite: nil
       }
     end
   end

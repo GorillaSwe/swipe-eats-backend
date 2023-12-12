@@ -94,7 +94,8 @@ class Api::FavoritesController < SecuredController
       user_sub: favorite.user.sub,
       user_name: favorite.user.name,
       user_picture: favorite.user.picture,
-      created_at: favorite.created_at
+      created_at: favorite.created_at,
+      is_favorite: true,
     }
   end
 
