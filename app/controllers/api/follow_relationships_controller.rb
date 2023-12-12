@@ -1,56 +1,50 @@
 class Api::FollowRelationshipsController < SecuredController
   skip_before_action :authorize_request, only: [:counts]
 
-  def create
-    user_sub = URI.decode_www_form_component(params[:user_sub])
+  before_action :set_user_by_sub, only: [:create, :index, :destroy_by_user_sub, :counts]
 
-    followed_user = User.find_by(sub: user_sub)
-    if followed_user && followed_user != @current_user && !@current_user.following?(followed_user)
-      @current_user.follow(followed_user)
-      render json: { message: 'Followed successfully' }, status: :created
-    else
-      render json: { error: 'Unable to follow' }, status: :unprocessable_entity
-    end
+  def create
+    return render json: { error: 'Unable to follow' }, status: :unprocessable_entity unless valid_follow_action?
+
+    @current_user.follow(@user)
+    render json: { message: 'Followed successfully' }, status: :created
   end
 
   def index
-    user_sub = URI.decode_www_form_component(params[:user_sub])
-
-    followed_user = User.find_by(sub: user_sub)
-    if followed_user && followed_user != @current_user
-      is_following = @current_user.following?(followed_user)
-      render json: { isFollowing: is_following }, status: :ok
-    else
-      render json: { error: 'User not found' }, status: :not_found
-    end
+    render json: { isFollowing: @current_user.following?(@user) }, status: :ok
   end
 
   def destroy_by_user_sub
-    user_sub = URI.decode_www_form_component(params[:user_sub])
+    return render json: { error: 'Unable to unfollow' }, status: :unprocessable_entity unless valid_unfollow_action?
 
-    followed_user = User.find_by(sub: user_sub)
-    if followed_user && followed_user != @current_user && @current_user.following?(followed_user)
-      @current_user.unfollow(followed_user)
-      render json: { message: 'Unfollowed successfully' }, status: :ok
-    else
-      render json: { error: 'Unable to unfollow' }, status: :unprocessable_entity
-    end
+    @current_user.unfollow(@user)
+    render json: { message: 'Unfollowed successfully' }, status: :ok
   end
 
   def counts
+    return render json: { error: 'User not found' }, status: :not_found unless @user
+
+    following_count = @user.following.count
+    followers_count = @user.followers.count
+
+    render json: {
+      followingCount: following_count,
+      followersCount: followers_count
+    }, status: :ok
+  end
+
+  private
+
+  def set_user_by_sub
     user_sub = URI.decode_www_form_component(params[:user_sub])
-    user = User.find_by(sub: user_sub)
+    @user = User.find_by(sub: user_sub)
+  end
 
-    if user
-      following_count = user.following.count
-      followers_count = user.followers.count
+  def valid_follow_action?
+    @user && @user != @current_user && !@current_user.following?(@user)
+  end
 
-      render json: {
-        followingCount: following_count,
-        followersCount: followers_count
-      }, status: :ok
-    else
-      render json: { error: 'User not found' }, status: :not_found
-    end
+  def valid_unfollow_action?
+    @user && @user != @current_user && @current_user.following?(@user)
   end
 end
