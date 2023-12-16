@@ -25,5 +25,9 @@ Rails.application.routes.draw do
       get :counts, on: :collection
     end
     delete 'follow_relationships/destroy_by_user_sub/:user_sub', to: 'follow_relationships#destroy_by_user_sub'
+
+    resource :locations do
+      get :search, on: :collection
+    end
   end
 end
