@@ -4,19 +4,23 @@ class Api::FavoritesController < SecuredController
   def create
     restaurant = Restaurant.find_by(place_id: params[:place_id])
     return render json: { error: 'Restaurant not found' }, status: :not_found unless restaurant
-
-    existing_favorite = @current_user.favorites.find_by(restaurant_id: restaurant.id)
-
-    if existing_favorite.nil?
-      favorite = @current_user.favorites.build(restaurant_id: restaurant.id)
-
-      if favorite.save
-        render json: favorite, status: :created
-      else
-        render json: favorite.errors, status: :unprocessable_entity
-      end
+  
+    favorite = @current_user.favorites.find_or_initialize_by(restaurant_id: restaurant.id)
+    favorite.rating = params[:rating] if params[:rating].present?
+    favorite.comment = params[:comment] if params[:comment].present?
+  
+    if favorite.new_record?
+      saved = favorite.save
+      status = :created
     else
-      render json: { message: 'Already favorited' }, status: :ok
+      saved = favorite.update(rating: params[:rating], comment: params[:comment])
+      status = :ok
+    end
+  
+    if saved
+      render json: favorite, status: status
+    else
+      render json: favorite.errors, status: :unprocessable_entity
     end
   end
 
@@ -96,6 +100,8 @@ class Api::FavoritesController < SecuredController
       user_picture: favorite.user.picture,
       created_at: favorite.created_at,
       is_favorite: true,
+      user_rating: favorite.rating,
+      user_comment: favorite.comment
     }
   end
 
