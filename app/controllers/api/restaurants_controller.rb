@@ -203,11 +203,18 @@ class Api::RestaurantsController < ApplicationController
 
   def add_favorites_to_restaurants(restaurants)
     favorite_restaurant_ids = @current_user.favorites.pluck(:restaurant_id)
+    favorites = @current_user.favorites.includes(:user).index_by(&:restaurant_id)
   
     restaurants.map do |restaurant|
       restaurant_record = Restaurant.find_by(place_id: restaurant[:place_id])
       if restaurant_record
-        restaurant[:is_favorite] = favorite_restaurant_ids.include?(restaurant_record.id)
+        favorite = favorites[restaurant_record.id]
+        restaurant[:is_favorite] = favorite.present?
+        if favorite
+          restaurant[:user_picture] = favorite.user.picture
+          restaurant[:user_rating] = favorite.rating
+          restaurant[:user_comment] = favorite.comment
+        end
       else
         restaurant[:is_favorite] = false
       end
