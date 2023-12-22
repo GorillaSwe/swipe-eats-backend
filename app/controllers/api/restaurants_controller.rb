@@ -1,6 +1,6 @@
 class Api::RestaurantsController < ApplicationController
   before_action :set_google_places_client, only: [:index, :restaurant_details, :search]
-  before_action :optional_authorize_request, only: [:search]
+  before_action :optional_authorize_request, only: [:index, :search]
 
   ERROR_PHOTO = "https://developers.google.com/static/maps/documentation/maps-static/images/quota.png?hl=ja"
 
@@ -25,6 +25,8 @@ class Api::RestaurantsController < ApplicationController
     return render_error(:bad_request, 'レストランが見つかりません') if restaurants.blank?
 
     processed_restaurants = sort_restaurants(process_restaurant_data(restaurants)).reverse
+
+    processed_restaurants = add_favorites_to_restaurants(processed_restaurants) if @current_user
 
     render json: { status: 200, message: processed_restaurants }
   end
@@ -117,7 +119,6 @@ class Api::RestaurantsController < ApplicationController
         postal_code: details[:postal_code],
         user_ratings_total: details[:user_ratings_total],
         formatted_phone_number: details[:formatted_phone_number],
-        is_favorite: nil
       }
     end
   end
@@ -211,6 +212,7 @@ class Api::RestaurantsController < ApplicationController
         favorite = favorites[restaurant_record.id]
         restaurant[:is_favorite] = favorite.present?
         if favorite
+          restaurant[:user_name] = favorite.user.name
           restaurant[:user_picture] = favorite.user.picture
           restaurant[:user_rating] = favorite.rating
           restaurant[:user_comment] = favorite.comment
