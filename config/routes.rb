@@ -22,7 +22,11 @@ Rails.application.routes.draw do
     delete 'favorites/destroy_by_place_id/:place_id', to: 'favorites#destroy_by_place_id'
 
     resources :follow_relationships, only: [:create, :index] do
-      get :counts, on: :collection
+      collection do
+        get :counts
+        get :following
+        get :followers
+      end
     end
     delete 'follow_relationships/destroy_by_user_sub/:user_sub', to: 'follow_relationships#destroy_by_user_sub'
 

@@ -7,7 +7,7 @@ class Api::FavoritesController < SecuredController
   
     favorite = @current_user.favorites.find_or_initialize_by(restaurant_id: restaurant.id)
     favorite.rating = params[:user_rating] if params[:user_rating].present?
-    favorite.comment = params[:user_comment] if params[:user_comment].present?
+    favorite.comment = params[:user_comment] if params[:user_comment] != nil
   
     if favorite.save
       render json: favorite_to_json(favorite), status: favorite.new_record? ? :created : :ok

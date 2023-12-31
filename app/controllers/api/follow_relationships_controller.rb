@@ -1,7 +1,7 @@
 class Api::FollowRelationshipsController < SecuredController
-  skip_before_action :authorize_request, only: [:counts]
+  skip_before_action :authorize_request, only: [:counts, :following, :followers]
 
-  before_action :set_user_by_sub, only: [:create, :index, :destroy_by_user_sub, :counts]
+  before_action :set_user_by_sub, only: [:create, :index, :destroy_by_user_sub, :counts, :following, :followers]
 
   def create
     return render json: { error: 'Unable to follow' }, status: :unprocessable_entity unless valid_follow_action?
@@ -31,6 +31,20 @@ class Api::FollowRelationshipsController < SecuredController
       followingCount: following_count,
       followersCount: followers_count
     }, status: :ok
+  end
+
+  def following
+    return render json: { error: 'User not found' }, status: :not_found unless @user
+  
+    following_users = @user.following
+    render json: { following: following_users }, status: :ok
+  end
+  
+  def followers
+    return render json: { error: 'User not found' }, status: :not_found unless @user
+  
+    follower_users = @user.followers
+    render json: { followers: follower_users }, status: :ok
   end
 
   private
