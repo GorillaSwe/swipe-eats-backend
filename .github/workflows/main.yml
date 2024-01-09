@@ -1,0 +1,53 @@
+name: Ruby on Rails CI
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: myapp_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd='mysqladmin ping'
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y libmysqlclient-dev
+          gem install bundler
+          bundle install --jobs 4 --retry 3
+
+      - name: Setup database
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: "mysql2://root:password@localhost:3306/myapp_test"
+        run: |
+          bin/rails db:create
+          bin/rails db:schema:load
+
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+        run: bin/rails test
