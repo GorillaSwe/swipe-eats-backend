@@ -1,0 +1,7 @@
+follow_relationship_one:
+  follower_id: 1
+  followed_id: 2
+
+follow_relationship_two:
+  follower_id: 2
+  followed_id: 1
