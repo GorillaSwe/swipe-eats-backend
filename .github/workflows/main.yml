@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
+      db:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: password
@@ -19,7 +19,6 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --network-alias db
           --health-cmd "mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
