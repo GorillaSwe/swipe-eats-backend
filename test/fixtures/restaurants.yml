@@ -1,11 +1,27 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+restaurant_one:
+  place_id: "placeid1"
+  name: "レストラン1"
+  lat: 35.0
+  lng: 139.0
+  vicinity: "東京"
+  rating: 4.5
+  price_level: 3
+  website: "http://restaurant1.com"
+  url: "http://restaurant1.com/url"
+  postal_code: "100-0001"
+  user_ratings_total: 100
+  formatted_phone_number: "03-1234-5678"
 
-# This model initially had no columns defined. If you add columns to the
-# model remove the "{}" from the fixture names and add the columns immediately
-# below each fixture, per the syntax in the comments below
-#
-one: {}
-# column: value
-#
-two: {}
-# column: value
+restaurant_two:
+  place_id: "placeid2"
+  name: "レストラン2"
+  lat: 36.0
+  lng: 140.0
+  vicinity: "横浜"
+  rating: 4.0
+  price_level: 2
+  website: "http://restaurant2.com"
+  url: "http://restaurant2.com/url"
+  postal_code: "200-0002"
+  user_ratings_total: 200
+  formatted_phone_number: "045-1234-5678"
